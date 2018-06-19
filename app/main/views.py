@@ -36,3 +36,9 @@ def index():
                                  form=form, name=session.get('name'),
                                  known=session.get('known', False),
                                  current_time=datetime.utcnow())
+
+# 如果未认证的用户访问这个路由，Flask-Login 会拦截请求，把用户发往登录页面。
+# @app.route('/secret')
+# @login_required
+# def secret():
+#     return "only authenticated users are allowed!"

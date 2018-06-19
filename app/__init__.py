@@ -4,6 +4,7 @@ from flask_bootstrap import Bootstrap
 from flask_mail import Mail
 from flask_moment import Moment
 from flask_sqlalchemy import SQLAlchemy
+from flask_login import LoginManager
 from config import config
 
 
@@ -11,6 +12,15 @@ bootstrap = Bootstrap()
 mail = Mail()
 moment = Moment()
 db = SQLAlchemy()
+login_manager = LoginManager()
+"""
+LoginManager 对象的 session_protection 属性可以设为 None、'basic' 或 'strong'，以提
+供不同的安全等级防止用户会话遭篡改。设为 'strong' 时，Flask-Login 会记录客户端 IP
+地址和浏览器的用户代理信息，如果发现异动就登出用户
+"""
+login_manager.session_protection = 'strong'
+# login_view 属性设置登录页面的端点
+login_manager.login_view = 'auth.login'
 """
 程序的工厂函数,参数为程序使用的配置名，
 配置类在config.py 文件中定义,
@@ -27,6 +37,7 @@ def create_app(config_name):
     mail.init_app(app)
     moment.init_app(app)
     db.init_app(app)
+    login_manager.init_app(app)
 
     # 蓝本在工厂函数create_app()中注册到程序上
     from .main import main as main_blueprint

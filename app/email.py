@@ -1,5 +1,6 @@
 # coding:utf-8
 from threading import Thread
+from flask import current_app,render_template
 from flask_mail import Message
 from . import mail
 
@@ -11,6 +12,7 @@ def send_async_email(app, msg):
 
 
 def send_email():
+    app = current_app._get_current_object()
     msg = Message(subject="Hello World!",
                   sender='1241908493@qq.com',
                   recipients=["1430250645@qq.com"])
