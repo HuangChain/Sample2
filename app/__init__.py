@@ -5,7 +5,7 @@ from flask_mail import Mail
 from flask_moment import Moment
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
-from config import config
+from config import config, DevelopmentConfig
 
 
 bootstrap = Bootstrap()
@@ -30,7 +30,10 @@ login_manager.login_view = 'auth.login'
 
 def create_app(config_name):
     app = Flask(__name__)
+    # config_name是’default’,等价于app.config.from_object(DevelopmentConfig)
+    # 作用就是配置所有的config变量。
     app.config.from_object(config[config_name])
+    # app.config.from_object(DevelopmentConfig)
     config[config_name].init_app(app)
 
     bootstrap.init_app(app)

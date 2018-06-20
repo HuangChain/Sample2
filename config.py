@@ -29,6 +29,8 @@ class Config:
 在 3 个子类中,SQLALCHEMY_DATABASE_URI 变量都被指定了不同的值。
 这样程序就可在不同 的配置环境中运行,每个环境都使用不同的数据库
 """
+
+
 class DevelopmentConfig(Config):
     DEBUG = True
     SQLALCHEMY_DATABASE_URI = \
