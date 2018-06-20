@@ -29,7 +29,7 @@ class RegisterForm(Form):
     submit = SubmitField('Register')
 
     """
-    如果表单类中定义了以validate_ 开头且后面跟着字段名的方法，这个方法就和常规的验证函数一起调用,
+    如果表单类中定义了以validate_ 开头且后面跟着字段名的方法，这个方法就和常规的验证函数一起调用,参数field就代表字段名
     自定义的验证函数要想表示验证失败，可以抛出 ValidationError 异常，其参数就是错误消息
     """
     def validate_email(self, field):
