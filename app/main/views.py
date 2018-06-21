@@ -1,12 +1,13 @@
 # coding:utf-8
 # 蓝本中定义的程序路由
 from datetime import datetime
-from flask import render_template, session, redirect, url_for
+from flask import render_template, abort, flash, redirect, url_for
+from flask_login import current_user, login_required
+
 from . import main
-from .forms import NameForm
-from .. import db
 from ..models import User
-from ..email import send_email
+from forms import EditProfileForm
+from .. import db
 """
 在蓝本中编写视图函数主要有两点不同:
 1.和前面的错误处理程序一样,路由修饰器 由蓝本提供;
@@ -21,6 +22,30 @@ Flask 会为蓝本中的全部端点加上一个命名空间,这样就可以在�
 @main.route('/', methods=['GET', 'POST'])
 def index():
     return render_template('index.html')
+
+@main.route('/user/<username>')
+def user(username):
+    user = User.query.filter_by(username=username).first()
+    if user is None:
+        abort(404)
+    return render_template('user.html', user=user)
+
+
+@main.route('/edit-profile', methods=['GET', 'POST'])
+@login_required
+def edit_profile():
+    form = EditProfileForm()
+    if form.validate_on_submit():
+        current_user.name = form.name.data
+        current_user.location = form.location.data
+        current_user.about_me = form.about_me.data
+        db.session.add(current_user)
+        flash('Your profile has been updated.')
+        return redirect(url_for('.user', username=current_user.username))
+    form.name.data = current_user.name
+    form.location.data = current_user.location
+    form.about_me.data = current_user.about_me
+    return render_template('edit_profile.html', form=form)
 
 # 如果未认证的用户访问这个路由，Flask-Login 会拦截请求，把用户发往登录页面。
 # @app.route('/secret')
