@@ -15,8 +15,7 @@ class Config:
     MAIL_PASSWORD = 'ocvcfuajjxdujbdg'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     FLASKY_MAIL_SUBJECT_PREFIX = '[Flasky]'
-    FLASKY_MAIL_SENDER = 'Flasky Admin <1241908493@qq.com>'
-    FLASKY_ADMIN = os.environ.get('FLASKY_ADMIN')
+    FLASKY_MAIL_SENDER = 'Flasky Admin <1241908493@qq.com>'  # 发件人
 
     """
     配置类可以定义 init_app() 类方法,其参数是程序实例。

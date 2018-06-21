@@ -20,22 +20,7 @@ Flask 会为蓝本中的全部端点加上一个命名空间,这样就可以在�
 
 @main.route('/', methods=['GET', 'POST'])
 def index():
-    form = NameForm()
-    if form.validate_on_submit():
-        user = User.query.filter_by(username=form.name.data).first()
-        if user is None:
-            user = User(username=form.name.data)
-            db.session.add(user)
-            session['known'] = False  # 表示换了个user登陆
-        else:
-            session['known'] = True
-        send_email()
-        session['name'] = form.name.data  # 用户的输入可通过字段的 data 属性获取
-        return redirect(url_for('.index'))
-    return render_template('index.html',
-                                 form=form, name=session.get('name'),
-                                 known=session.get('known', False),
-                                 current_time=datetime.utcnow())
+    return render_template('index.html')
 
 # 如果未认证的用户访问这个路由，Flask-Login 会拦截请求，把用户发往登录页面。
 # @app.route('/secret')

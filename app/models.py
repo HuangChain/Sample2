@@ -56,7 +56,7 @@ class User(UserMixin, db.Model):
         # 将字符串token读到data时，会按这个编码进行解码成unicode
         except:
             return False
-        if data.get('confirm') != self.id:    # ???????????
+        if data.get('confirm') != self.id:    # self.id为当前用户的id，检查令牌中的id否和存储在current_user中的已登录用户匹配
             return False
         self.confirmed = True
         db.session.add(self)
