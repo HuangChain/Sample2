@@ -13,10 +13,33 @@ class Role(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(64), unique=True)
     users = db.relationship('User', backref='role', lazy='dynamic')
+    default = db.Column(db.Boolean, default=False, index=True)
+    permissions = db.Column(db.Integer)
+
+    # 可以直接通过类访问这个方法而不需要创建实例之后才能访问这个方法,它的作用是初始化Role数据表中的数据
+    @staticmethod
+    def insert_roles():
+        roles = {
+            'User': (Permission.FOLLOW |
+                     Permission.COMMENT |
+                     Permission.WRITE_ARTICLES, True),
+            'Moderator': (Permission.FOLLOW |
+                          Permission.COMMENT |
+                          Permission.WRITE_ARTICLES |
+                          Permission.MODERATE_COMMENTS, False),
+            'Administrator': (0xff, False)
+            }
+        for r in roles:
+            role = Role.query.filter_by(name=r).first()
+            if role is None:
+                role = Role(name=r)
+            role.permissions = roles[r][0]
+            role.default = roles[r][1]
+            db.session.add(role)
+            db.session.commit()
 
     def __repr__(self):
         return '<Role %r>' % self.name
-
 
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
@@ -75,3 +98,19 @@ class User(UserMixin, db.Model):
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
+
+# 将每种权限用一位来表示，0为无权限，1为有权限，一种灵活的权限控制方法
+# 可以把这里的十六进制当作二进制看，那么：
+# 权限1：0x01 = 0001
+# 权限2：0x02 = 0010
+# 权限3：0x04 = 0100
+# 权限4：0x08 = 1000
+# 如果某个用户同时有权限2和4，那么它的权限就是1010；如果有权限123，那么就是0111；如果都有，就是1111；
+# 这样来进行权限控制的。用十六进制就是简单的表达二进制
+# 0b是说明这段数字是二进制,0x表示是16进制.0x几乎所有的编译器都支持,而支持0b的并不多.
+class Permission:
+    FOLLOW = 0x01
+    COMMENT = 0x02
+    WRITE_ARTICLES = 0x04
+    MODERATE_COMMENTS = 0x08
+    ADMINISTER = 0x80

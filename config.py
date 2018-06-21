@@ -17,10 +17,9 @@ class Config:
     FLASKY_MAIL_SUBJECT_PREFIX = '[Flasky]'
     FLASKY_MAIL_SENDER = 'Flasky Admin <1241908493@qq.com>'  # 发件人
 
-    """
-    配置类可以定义 init_app() 类方法,其参数是程序实例。
-    在这个方法中,可以执行对当前 环境的配置初始化
-    """
+
+    # 配置类可以定义init_app()类方法,其参数是程序实例。在这个方法中,可以执行对当前 环境的配置初始化
+    # 返回函数的静态方法,静态方法无需实例化,也可以实例化后调用
     @staticmethod
     def init_app(app):
         pass
