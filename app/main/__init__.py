@@ -1,6 +1,8 @@
 # coding:utf-8
 from flask import Blueprint
 
+from ..models import Permission
+
 
 """
 蓝本和程序类似,也可以定义路由,在蓝本中定义的路由处于休眠状态,直到蓝本注册到程序上后,路由才真正成为程序 的一部分
@@ -10,3 +12,8 @@ from flask import Blueprint
 main = Blueprint('main', __name__)
 
 from . import views, errors  # 避免循环导入依赖,因为在views.py和errors.py中还要导入蓝本 main。
+
+# 把 Permission 类加入模板上下文
+@main.app_context_processor
+def inject_permissions():
+    return dict(Permission=Permission)

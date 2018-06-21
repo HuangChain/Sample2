@@ -1,6 +1,6 @@
 # coding:utf-8
 from . import db
-from flask_login import UserMixin
+from flask_login import UserMixin, AnonymousUserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from flask import current_app
@@ -41,6 +41,7 @@ class Role(db.Model):
     def __repr__(self):
         return '<Role %r>' % self.name
 
+
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
@@ -49,6 +50,23 @@ class User(UserMixin, db.Model):
     password_hash = db.Column(db.String(128))
     role_id = db.Column(db.Integer, db.ForeignKey('roles.id'))
     confirmed = db.Column(db.Boolean, default=False)
+
+    def __init__(self,**kwargs):
+        super(User, self).__init__(**kwargs)
+        if self.role is None:
+            if self.email == current_app.config['FLASKY_ADMIN']:
+                self.role = Role.query.filter_by(permissions=0xff).first()
+            if self.role is None:
+                self.role = Role.query.filter_by(default=True).first()  # 即role为user的角色
+
+    # 检查用户是否有指定的权限
+    # can()方法在请求和赋予角色这两种权限之间进行位与操作。如果角色中包含请求的所有权限位,则返回True,表示允许用户执行此项操作
+    def can(self, permissions):
+        return self.role is not None and \
+               (self.role.permissions & permissions) == permissions
+
+    def is_administrator(self):
+        return self.can(Permission.ADMINISTER)
 
     # @property装饰器使方法像属性一样调用，就像是一种特殊的属性,方法将变成不可读属性
     # 为了解决对属性的操作，提供了封装方法的方式进行属性的修改,eg:@password.setter
