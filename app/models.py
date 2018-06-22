@@ -3,12 +3,14 @@ from . import db
 from flask_login import UserMixin, AnonymousUserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
-from flask import current_app
+from flask import current_app, request
 
 from datetime import datetime
+import hashlib
 
 
 from .import login_manager
+
 
 class Role(db.Model):
     __tablename__ = 'roles'
@@ -56,6 +58,7 @@ class User(UserMixin, db.Model):
     about_me = db.Column(db.Text())
     member_since = db.Column(db.DateTime(), default=datetime.utcnow)  # 注册日期
     last_seen = db.Column(db.DateTime(), default=datetime.utcnow)  # 最后访问日期
+    posts = db.relationship('Post', backref='author', lazy='dynamic')
 
     def __init__(self,**kwargs):
         super(User, self).__init__(**kwargs)
@@ -78,6 +81,15 @@ class User(UserMixin, db.Model):
     def ping(self):
         self.last_seen = datetime.utcnow()
         db.session.add(self)
+
+    def gravatar(self, size=100, default='identicon', rating='g'):
+        if request.is_secure:
+            url = 'https://secure.gravatar.com/avatar'
+        else:
+            url = 'http://www.gravatar.com/avatar'
+        hash = hashlib.md5(self.email.encode('utf-8')).hexdigest()
+        return '{url}/{hash}?s={size}&d={default}&r={rating}'.format(
+            url=url, hash=hash, size=size, default=default, rating=rating)
 
     # @property装饰器使方法像属性一样调用，就像是一种特殊的属性,方法将变成不可读属性
     # 为了解决对属性的操作，提供了封装方法的方式进行属性的修改,eg:@password.setter
@@ -127,7 +139,6 @@ class User(UserMixin, db.Model):
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
-
 # 将每种权限用一位来表示，0为无权限，1为有权限，一种灵活的权限控制方法
 # 可以把这里的十六进制当作二进制看，那么：
 # 权限1：0x01 = 0001
@@ -137,9 +148,19 @@ def load_user(user_id):
 # 如果某个用户同时有权限2和4，那么它的权限就是1010；如果有权限123，那么就是0111；如果都有，就是1111；
 # 这样来进行权限控制的。用十六进制就是简单的表达二进制
 # 0b是说明这段数字是二进制,0x表示是16进制.0x几乎所有的编译器都支持,而支持0b的并不多.
+
+
 class Permission:
     FOLLOW = 0x01
     COMMENT = 0x02
     WRITE_ARTICLES = 0x04
     MODERATE_COMMENTS = 0x08
     ADMINISTER = 0x80
+
+
+class Post(db.Model):
+    __tablename__ = 'posts'
+    id = db.Column(db.Integer, primary_key=True)
+    body = db.Column(db.Text)
+    timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
+    author_id = db.Column(db.Integer, db.ForeignKey('users.id'))

@@ -7,6 +7,7 @@
 {#    对静态文件的引用被当成一个特殊的路由#}
 <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
 <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+<link rel="stylesheet" type="text/css" href="{{url_for('static',filename='styles.css')}}">
 {% endblock %}
 
 {% block navbar %}

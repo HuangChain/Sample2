@@ -14,7 +14,7 @@ from ..email import send_email
 
 # 对蓝本来说,before_request钩子只能应用到属于蓝本的请求上。若想在蓝本中使用针对程序全局请求的钩子,必须使用before_app_request修饰器
 # 在before_app_request处理程序中过滤未确认的账户,同时满足以下3个条件时,before_app_request处理程序会拦截请求
-# (1) 用户已登录(current_user.is_authenticated() 必须返回 True)。
+# (1) 用户已登录current_user.is_authenticated()必须返回True
 # (2) 用户的账户还未确认。
 # (3) 请求的端点(使用request.endpoint获取)不在认证蓝本中。访问认证路由要获取权限,因为这些路由的作用是让用户确认账户或执行其他账户管理操作
 @auth.before_app_request

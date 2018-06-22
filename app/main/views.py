@@ -5,8 +5,8 @@ from flask import render_template, abort, flash, redirect, url_for
 from flask_login import current_user, login_required
 
 from . import main
-from ..models import User
-from forms import EditProfileForm, EditProfileAdminForm
+from ..models import User, Role, Post, Permission
+from forms import EditProfileForm, EditProfileAdminForm, PostForm
 from .. import db
 from ..decorators import admin_required
 """
@@ -22,10 +22,20 @@ Flask 会为蓝本中的全部端点加上一个命名空间,这样就可以在�
 
 @main.route('/', methods=['GET', 'POST'])
 def index():
-    return render_template('index.html')
+    form = PostForm()
+    if current_user.can(Permission.WRITE_ARTICLES) and \
+            form.validate_on_submit():
+        # current_user由Flask - Login提供, 和所有上下文变量一样, 也是通过线程内的代理对象实现。这个对象的表现类似用户对象,
+        # 但实际上却是一个轻度包装, 包含真正的用户对象。 数据库需要真正的用户对象, 因此要调用_get_current_object()方法
+        post = Post(body=form.body.data,
+                    author=current_user._get_current_object())
+        db.session.add(post)
+        return redirect(url_for('.index'))
+    posts = Post.query.order_by(Post.timestamp.desc()).all()
+    return render_template('index.html', form=form, posts=posts)
 
-# 资料页面的路由
-@main.route('/user/<username>')
+
+@main.route('/user/<username>')  # 资料页面的路由
 def user(username):
     user = User.query.filter_by(username=username).first()
     if user is None:
@@ -44,40 +54,33 @@ def edit_profile():
         db.session.add(current_user)
         flash('Your profile has been updated.')
         return redirect(url_for('.user', username=current_user.username))
-    print current_user
     form.name.data = current_user.username
     form.location.data = current_user.location
     form.about_me.data = current_user.about_me
     return render_template('edit_profile.html', form=form)
 
+
 @main.route('/edit-profile/<int:id>', methods=['GET', 'POST'])
 @login_required
 @admin_required
 def edit_profile_admin(id):
-    user = User.query.get_or_404(id)
+    user = User.query.get_or_404(id)  # 用户由id指定,因此可使用Flask-SQLAlchemy提供的get_or_404()函数,如果id不正确,则会返回404错误
     form = EditProfileAdminForm(user=user)
     if form.validate_on_submit():
         user.email = form.email.data
-        user.username = form.username.data
+        user.username = form.name.data
         user.confirmed = form.confirmed.data
         user.role = Role.query.get(form.role.data)
-        user.name = form.name.data
         user.location = form.location.data
         user.about_me = form.about_me.data
         db.session.add(user)
         flash('The profile has been updated.')
         return redirect(url_for('.user', username=user.username))
     form.email.data = user.email
-    form.username.data = user.username
+    form.name.data = user.username
     form.confirmed.data = user.confirmed
     form.role.data = user.role_id
-    form.name.data = user.name
     form.location.data = user.location
     form.about_me.data = user.about_me
     return render_template('edit_profile.html', form=form, user=user)
 
-# 如果未认证的用户访问这个路由，Flask-Login 会拦截请求，把用户发往登录页面。
-# @app.route('/secret')
-# @login_required
-# def secret():
-#     return "only authenticated users are allowed!"
