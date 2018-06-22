@@ -48,8 +48,9 @@ def login():
             # “记住我”也在表单中填写。如果值为 False，那么关闭浏览器后用户会话就过期了，所以下次用户访问时要重新登录。
             # 如果值为 True，那么会在用户浏览器中写入一个长期有效的 cookie，使用这个 cookie 可以复现用户会话
             login_user(user, form.remember_me.data)
-            # 用户访问未授权的URL时会显示登录表单，Flask-Login会把原地址保存在查询字符串的 next 参数中，
-            # 这个参数可从 request.args 字典中读取。如果查询字符串中没有 next 参数，则重定向到首页
+            # 用户访问未授权的URL时会显示登录表单，Flask-Login会把原地址保存在查询字符串的next参数中，
+            # next的作用就是让你从哪里来回哪里去
+            # 这个参数可从request.args字典中读取。如果查询字符串中没有next参数，则重定向到首页
             next = request.args.get('next')
             if next is None or not next.startswith('/'):  # 用于检查字符串是否是以指定子字符串开头，如果是则返回 True，否则返回 False
                 next = url_for('main.index')
@@ -79,7 +80,7 @@ def register():
         send_email(user.email, 'Confirm Your Account',
                    'auth/email/confirm', user=user, token=token)
         flash('A confirmation email has been sent to you by email.')
-        return redirect(url_for('main.index'))  # ？？？？？？？跳转到http://127.0.0.1:5000/auth/unconfirmed
+        return redirect(url_for('main.index'))
     return render_template('auth/register.html', form=form)
 
 
@@ -104,6 +105,7 @@ def resend_confirmation():
                'auth/email/confirm', user=current_user, token=token)
     flash('A new confirmation email has been sent to you by email.')
     return redirect(url_for('main.index'))
+
 
 @auth.route('/change_password', methods=['GET', 'POST'])
 @login_required

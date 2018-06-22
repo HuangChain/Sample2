@@ -17,10 +17,6 @@ class Role(db.Model):
     users = db.relationship('User', backref='role', lazy='dynamic')
     default = db.Column(db.Boolean, default=False, index=True)
     permissions = db.Column(db.Integer)
-    location = db.Column(db.String(64))
-    about_me = db.Column(db.Text())
-    member_since = db.Column(db.DateTime(), default=datetime.utcnow)  # 注册日期
-    last_seen = db.Column(db.DateTime(), default=datetime.utcnow)  # 最后访问日期
 
     # 可以直接通过类访问这个方法而不需要创建实例之后才能访问这个方法,它的作用是初始化Role数据表中的数据
     @staticmethod
@@ -56,6 +52,10 @@ class User(UserMixin, db.Model):
     password_hash = db.Column(db.String(128))
     role_id = db.Column(db.Integer, db.ForeignKey('roles.id'))
     confirmed = db.Column(db.Boolean, default=False)
+    location = db.Column(db.String(64))
+    about_me = db.Column(db.Text())
+    member_since = db.Column(db.DateTime(), default=datetime.utcnow)  # 注册日期
+    last_seen = db.Column(db.DateTime(), default=datetime.utcnow)  # 最后访问日期
 
     def __init__(self,**kwargs):
         super(User, self).__init__(**kwargs)
@@ -69,7 +69,7 @@ class User(UserMixin, db.Model):
     # can()方法在请求和赋予角色这两种权限之间进行位与操作。如果角色中包含请求的所有权限位,则返回True,表示允许用户执行此项操作
     def can(self, permissions):
         return self.role is not None and \
-               (self.role.permissions & permissions) == permissions
+               (self.role.permissions & permissions) == permissions  # 与结果==permission则说明该角色可以执行此项操作
 
     def is_administrator(self):
         return self.can(Permission.ADMINISTER)
