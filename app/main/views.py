@@ -1,7 +1,7 @@
 # coding:utf-8
 # 蓝本中定义的程序路由
 from datetime import datetime
-from flask import render_template, abort, flash, redirect, url_for, request, current_app
+from flask import render_template, abort, flash, redirect, url_for
 from flask_login import current_user, login_required
 
 from . import main
@@ -31,23 +31,16 @@ def index():
                     author=current_user._get_current_object())
         db.session.add(post)
         return redirect(url_for('.index'))
-    page = request.args.get('page', 1, type=int)  # 默认第一页，参数type=int保证参数无法转换成整数时,返回默认值
-    pagination = Post.query.order_by(Post.timestamp.desc()).paginate(
-        page, per_page=2,
-        error_out=False)  # 为True时(默认值),如果请求的页数超出了范围,则会返回404错误;为False,页数超出范围时会返回一个空列表
-    posts = pagination.items
-    return render_template('index.html', form=form, posts=posts,pagination=pagination)
+    posts = Post.query.order_by(Post.timestamp.desc()).all()
+    return render_template('index.html', form=form, posts=posts)
 
 
 @main.route('/user/<username>')  # 资料页面的路由
 def user(username):
     user = User.query.filter_by(username=username).first()
-    page = request.args.get('page', 1, type=int)
-    pagination = Post.query.order_by(Post.timestamp.desc()).paginate(
-        page, per_page=2,
-        error_out=False)
-    posts = pagination.items
-    return render_template('user.html', user=user, posts=posts, pagination=pagination)
+    if user is None:
+        abort(404)
+    return render_template('user.html', user=user)
 
 
 @main.route('/edit-profile', methods=['GET', 'POST'])

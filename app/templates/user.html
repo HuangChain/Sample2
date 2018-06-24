@@ -1,12 +1,10 @@
 {% extends "base.html" %}
-{% import "_macros.html" as macros %}
 
 {% block title %}Flasky-{{ user.username }}{% endblock %}
 
 {% block page_content %}
 <div class="page-header">
     <img class="img-rounded profile-thumbnail" src="{{ user.gravatar(size=256) }}">
-    <div class="profile-header">
     <h1>{{ user.username }}</h1>
     {% if user.name or user.location %}
     <p>
@@ -27,7 +25,6 @@
     <p>
              Member since {{ moment(user.member_since).format('L') }}.Last seen {{ moment(user.last_seen).fromNow() }}.
     </p>
-    <p>{{ user.posts.count() }}blog post.</p>
     <p>
         {% if user == current_user %}
 {#            省略蓝本名字main#}
@@ -38,12 +35,4 @@
         {% endif %}
     </p>
 </div>
-</div>
-<h3>Posts by {{ user.username }}</h3>
-{% include '_posts.html' %}
-{% if pagination %}
-    <div class="pagination">
-        {{ macros.pagination_widget(pagination, '.user',username=user.username )}}
-    </div>
-{% endif %}
 {% endblock %}
