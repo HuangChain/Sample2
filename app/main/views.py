@@ -6,7 +6,7 @@ from flask_login import current_user, login_required
 
 from . import main
 from ..models import User, Role, Post, Permission
-from forms import EditProfileForm, EditProfileAdminForm, PostForm
+from .forms import EditProfileForm, EditProfileAdminForm, PostForm
 from .. import db
 from ..decorators import admin_required
 """
@@ -36,17 +36,18 @@ def index():
         page, per_page=2,
         error_out=False)  # 为True时(默认值),如果请求的页数超出了范围,则会返回404错误;为False,页数超出范围时会返回一个空列表
     posts = pagination.items
-    return render_template('index.html', form=form, posts=posts,
-                           pagination=pagination)
+    return render_template('index.html', form=form, posts=posts,pagination=pagination)
 
 
 @main.route('/user/<username>')  # 资料页面的路由
 def user(username):
     user = User.query.filter_by(username=username).first()
-    if user is None:
-        abort(404)
-    posts = user.posts.order_by(Post.timestamp.desc()).all()
-    return render_template('user.html', user=user, posts=posts)
+    page = request.args.get('page', 1, type=int)
+    pagination = Post.query.order_by(Post.timestamp.desc()).paginate(
+        page, per_page=2,
+        error_out=False)
+    posts = pagination.items
+    return render_template('user.html', user=user, posts=posts, pagination=pagination)
 
 
 @main.route('/edit-profile', methods=['GET', 'POST'])
