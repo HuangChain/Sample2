@@ -1,6 +1,6 @@
 # coding:utf-8
 from . import db
-from flask_login import UserMixin, AnonymousUserMixin
+from flask_login import UserMixin, AnonymousUserMixin, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from flask import current_app, request
@@ -54,12 +54,11 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(64), unique=True, index=True)
     username = db.Column(db.String(64), unique=True, index=True)
     password_hash = db.Column(db.String(128))
-    role_id = db.Column(db.Integer, db.ForeignKey('roles.id'))
+    role_id = db.Column(db.Integer, db.ForeignKey('roles.id'))  # 一对多时，外键在多的一侧，多对一时，在一的一侧
     confirmed = db.Column(db.Boolean, default=False)
     location = db.Column(db.String(64))
     about_me = db.Column(db.Text())
     member_since = db.Column(db.DateTime(), default=datetime.utcnow)  # 注册日期
-    last_seen = db.Column(db.DateTime(), default=datetime.utcnow)  # 最后访问日期
     posts = db.relationship('Post', backref='author', lazy='dynamic')
 
     def __init__(self,**kwargs):
@@ -132,6 +131,16 @@ class User(UserMixin, db.Model):
         return '<User %r>' % self.username
 
 
+class Anonymoususer(AnonymousUserMixin):
+    def can(self, permissions):
+        return False
+
+    def is_administrator(self):
+        return False
+
+login_manager.anonymous_user = Anonymoususer
+
+
 """
 加载用户的回调函数接收以 Unicode 字符串形式表示的用户标识符。如果能找到用户，这
 个函数必须返回用户对象；否则应该返回 None
@@ -176,6 +185,7 @@ class Post(db.Model):
         target.body_html = bleach.linkify(bleach.clean(
             markdown(value, output_format='html'),
             tags=allowed_tags, strip=True))
+        print target,value,oldvalue,initiator
 
 
 db.event.listen(Post.body, 'set', Post.on_changed_body)

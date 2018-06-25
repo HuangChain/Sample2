@@ -95,7 +95,7 @@ def edit_profile_admin(id):
 @main.route('/post/<int:id>')
 def post(id):
     post = Post.query.get_or_404(id)
-    return render_template('post.html', posts=[post])
+    return render_template('post.html', posts=[post])  # 共用_post.html模板，所以转换成数组
 
 
 @main.route('/edit/<int:id>', methods=['GET', 'POST'])
