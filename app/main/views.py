@@ -1,7 +1,7 @@
 # coding:utf-8
 # 蓝本中定义的程序路由
 from datetime import datetime
-from flask import render_template, abort, flash, redirect, url_for
+from flask import render_template, abort, flash, redirect, url_for, request
 from flask_login import current_user, login_required
 
 from . import main
@@ -23,24 +23,31 @@ Flask 会为蓝本中的全部端点加上一个命名空间,这样就可以在�
 @main.route('/', methods=['GET', 'POST'])
 def index():
     form = PostForm()
-    if current_user.can(Permission.WRITE_ARTICLES) and \
-            form.validate_on_submit():
-        # current_user由Flask - Login提供, 和所有上下文变量一样, 也是通过线程内的代理对象实现。这个对象的表现类似用户对象,
-        # 但实际上却是一个轻度包装, 包含真正的用户对象。 数据库需要真正的用户对象, 因此要调用_get_current_object()方法
+    if current_user.can(Permission.WRITE_ARTICLES) and form.validate_on_submit():
         post = Post(body=form.body.data,
                     author=current_user._get_current_object())
         db.session.add(post)
+        db.session.commit()
         return redirect(url_for('.index'))
-    posts = Post.query.order_by(Post.timestamp.desc()).all()
-    return render_template('index.html', form=form, posts=posts)
+    page = request.args.get('page', 1, type=int)
+    pagination = Post.query.order_by(Post.timestamp.desc()).paginate(
+        page, per_page=2,
+        error_out=False)
+    posts = pagination.items
+    return render_template('index.html', form=form, posts=posts,
+                           pagination=pagination)
 
 
-@main.route('/user/<username>')  # 资料页面的路由
+@main.route('/user/<username>')
 def user(username):
-    user = User.query.filter_by(username=username).first()
-    if user is None:
-        abort(404)
-    return render_template('user.html', user=user)
+    user = User.query.filter_by(username=username).first_or_404()
+    page = request.args.get('page', 1, type=int)
+    pagination = user.posts.order_by(Post.timestamp.desc()).paginate(
+        page, per_page=2,
+        error_out=False)
+    posts = pagination.items
+    return render_template('user.html', user=user, posts=posts,
+                           pagination=pagination)
 
 
 @main.route('/edit-profile', methods=['GET', 'POST'])
@@ -84,3 +91,26 @@ def edit_profile_admin(id):
     form.about_me.data = user.about_me
     return render_template('edit_profile.html', form=form, user=user)
 
+
+@main.route('/post/<int:id>')
+def post(id):
+    post = Post.query.get_or_404(id)
+    return render_template('post.html', posts=[post])
+
+
+@main.route('/edit/<int:id>', methods=['GET', 'POST'])
+@login_required
+def edit(id):
+    post = Post.query.get_or_404(id)
+    if current_user != post.author and \
+            not current_user.can(Permission.ADMIN):
+        abort(403)
+    form = PostForm()
+    if form.validate_on_submit():
+        post.body = form.body.data
+        db.session.add(post)
+        db.session.commit()
+        flash('The post has been updated.')
+        return redirect(url_for('.post', id=post.id))
+    form.body.data = post.body
+    return render_template('edit_post.html', form=form)
