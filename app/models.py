@@ -48,6 +48,15 @@ class Role(db.Model):
         return '<Role %r>' % self.name
 
 
+class Follow(db.Model):
+    __tablename__ = 'follows'
+    follower_id = db.Column(db.Integer, db.ForeignKey('users.id'),  # 关注者-->被关注者
+                            primary_key=True)
+    followed_id = db.Column(db.Integer, db.ForeignKey('users.id'),  # 被关注者-->关注者
+                            primary_key=True)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
@@ -60,6 +69,18 @@ class User(UserMixin, db.Model):
     about_me = db.Column(db.Text())
     member_since = db.Column(db.DateTime(), default=datetime.utcnow)  # 注册日期
     posts = db.relationship('Post', backref='author', lazy='dynamic')
+    # 关注者-->被关注者
+    followed = db.relationship('Follow',
+                               foreign_keys=[Follow.follower_id],
+                               backref=db.backref('follower', lazy='joined'),
+                               lazy='dynamic',
+                               cascade='all, delete-orphan')
+    # 被关注者-->关注者
+    followers = db.relationship('Follow',
+                                foreign_keys=[Follow.followed_id],
+                                backref=db.backref('followed', lazy='joined'),
+                                lazy='dynamic',
+                                cascade='all, delete-orphan')
 
     def __init__(self,**kwargs):
         super(User, self).__init__(**kwargs)
@@ -137,6 +158,7 @@ class Anonymoususer(AnonymousUserMixin):
 
     def is_administrator(self):
         return False
+
 
 login_manager.anonymous_user = Anonymoususer
 
