@@ -173,7 +173,12 @@ class User(UserMixin, db.Model):
             return False
         return self.followers.filter_by(
             follower_id=user.id).first() is not None
-
+    # 方法定义为属性，因此调用时无需加 ()
+    @property
+    def followed_posts(self):
+        return Post.query.join(Follow, Follow.followed_id == Post.author_id)\
+            .filter(Follow.follower_id == self.id)
+        
     def __repr__(self):
         return '<User %r>' % self.username
 
