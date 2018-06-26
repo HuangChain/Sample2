@@ -1,7 +1,7 @@
 # coding:utf-8
 # 蓝本中定义的程序路由
 from datetime import datetime
-from flask import render_template, abort, flash, redirect, url_for, request
+from flask import render_template, abort, flash, redirect, url_for, request, make_response
 from flask_login import current_user, login_required
 
 from . import main
@@ -30,12 +30,20 @@ def index():
         db.session.commit()
         return redirect(url_for('.index'))
     page = request.args.get('page', 1, type=int)
+    show_followed = False  # 为非空字符串，则表示只显示所关注用户的文章
+    if current_user.is_authenticated:
+        # cookie 以 request.cookies 字典的形式存储在请求对象中
+        show_followed = bool(request.cookies.get('show_followed', ''))
+    if show_followed:
+        query = current_user.followed_posts
+    else:
+        query = Post.query
     pagination = Post.query.order_by(Post.timestamp.desc()).paginate(
         page, per_page=2,
         error_out=False)
     posts = pagination.items
     return render_template('index.html', form=form, posts=posts,
-                           pagination=pagination)
+                           show_followed=show_followed, pagination=pagination)
 
 
 @main.route('/user/<username>')
@@ -180,3 +188,22 @@ def followed_by(username):
     return render_template('followers.html', user=user, title="Followed by",
                            endpoint='.followed_by', pagination=pagination,
                            follows=follows)
+
+
+# 查询所有文章
+@main.route('/all')
+@login_required
+def show_all():
+    resp = make_response(redirect(url_for('.index')))
+    resp.set_cookie('show_followed', '', max_age=30 * 24 * 60 * 60)
+    return resp
+
+
+# 查询所关注用户的文章
+@main.route('/followed')
+@login_required
+def show_followed():
+    resp = make_response(redirect(url_for('.index')))
+    resp.set_cookie('show_followed', '1', max_age=30 * 24 * 60 * 60)
+    return resp
+
