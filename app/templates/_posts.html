@@ -31,6 +31,7 @@
                     <a href="{{ url_for('.post', id=post.id) }}">
                         <span class="label label-default">Permalink</span>
                     </a>
+{#  在第一个#后面出现的任何字符，都会被浏览器解读为位置标识符。这些字符都不会被发送到服务器端#}
                     <a href="{{ url_for('.post', id=post.id) }}#comments">
                         <span class="label label-primary">{{ post.comments.count() }} Comments</span>
                     </a>
