@@ -5,8 +5,8 @@ from flask import render_template, abort, flash, redirect, url_for, request, mak
 from flask_login import current_user, login_required
 
 from . import main
-from ..models import User, Role, Post, Permission
-from .forms import EditProfileForm, EditProfileAdminForm, PostForm
+from ..models import User, Role, Post, Permission, Comment
+from .forms import EditProfileForm, EditProfileAdminForm, PostForm, CommentForm
 from .. import db
 from ..decorators import admin_required, permission_required
 """
@@ -38,7 +38,7 @@ def index():
         query = current_user.followed_posts
     else:
         query = Post.query
-    pagination = Post.query.order_by(Post.timestamp.desc()).paginate(
+    pagination = query.order_by(Post.timestamp.desc()).paginate(
         page, per_page=2,
         error_out=False)
     posts = pagination.items
@@ -100,10 +100,32 @@ def edit_profile_admin(id):
     return render_template('edit_profile.html', form=form, user=user)
 
 
-@main.route('/post/<int:id>')
+@main.route('/post/<int:id>', methods=['GET', 'POST'])
 def post(id):
     post = Post.query.get_or_404(id)
-    return render_template('post.html', posts=[post])  # 共用_post.html模板，所以转换成数组
+    form = CommentForm()
+    if form.validate_on_submit():
+        comment = Comment(body=form.body.data,
+                          post=post,
+                          author=current_user._get_current_object())
+        # current_user变量是上下文代理对象。真正的User对象要使用表达式current_user._get_current_object()获取
+        db.session.add(comment)
+        db.session.commit()
+        flash('Your comment has been published.')
+        return redirect(url_for('.post', id=post.id, page=-1))
+    # page为-1,是个特殊的页数,用来请求评论的最后一页，所以刚提交的评论才会出现在页面中。
+    # 程序从查询字符串中获取页数，发现值为 -1 时，会计算评论的总量和总页数，得出真正要显示的页数
+    page = request.args.get('page', 1, type=int)
+    if page == -1:  # //表示整数除法
+        page = (post.comments.count() - 1) // \
+            2 + 1
+        print page
+    pagination = post.comments.order_by(Comment.timestamp.asc()).paginate(
+        page, per_page=2,
+        error_out=False)
+    comments = pagination.items
+    return render_template('post.html', posts=[post], form=form,
+                           comments=comments, pagination=pagination)  # 共用_post.html模板，所以转换成数组
 
 
 @main.route('/edit/<int:id>', methods=['GET', 'POST'])
@@ -111,7 +133,7 @@ def post(id):
 def edit(id):
     post = Post.query.get_or_404(id)
     if current_user != post.author and \
-            not current_user.can(Permission.ADMIN):
+            not current_user.can(Permission.ADMINISTER):
         abort(403)
     form = PostForm()
     if form.validate_on_submit():
@@ -194,7 +216,9 @@ def followed_by(username):
 @main.route('/all')
 @login_required
 def show_all():
+    # cookie只能在响应对象中设置,因此这两个路由不能依赖Flask,要使用make_response()方法创建响应对象
     resp = make_response(redirect(url_for('.index')))
+    # max_age参数设置cookie的过期时间，单位为秒
     resp.set_cookie('show_followed', '', max_age=30 * 24 * 60 * 60)
     return resp
 
