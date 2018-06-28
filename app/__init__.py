@@ -59,3 +59,4 @@ def create_app(config_name):
     # 附加路由和自定义的错误页面
 
     return app  # 工厂函数返回创建的程序示例
+

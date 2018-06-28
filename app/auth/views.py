@@ -96,7 +96,6 @@ def confirm(token):
     return redirect(url_for('main.index'))
 
 
-
 @auth.route('/confirm')
 @login_required
 def resend_confirmation():
