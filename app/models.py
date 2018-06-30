@@ -5,6 +5,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from flask import current_app, request, url_for
 from markdown import markdown
+from app.exceptions import ValidationError
 import bleach
 
 from datetime import datetime
@@ -26,7 +27,6 @@ class Role(db.Model):
         super(Role, self).__init__(**kwargs)
         if self.permissions is None:
             self.permissions = 0
-
 
     # 可以直接通过类访问这个方法而不需要创建实例之后才能访问这个方法,它的作用是初始化Role数据表中的数据
     @staticmethod
@@ -215,6 +215,18 @@ class User(UserMixin, db.Model):
             return None
         return User.query.get(data['id'])
 
+    def to_json(self):
+        json_user = {
+            'url': url_for('api.get_post', id=self.id, _external=True),
+            'username': self.username,
+            'member_since': self.member_since,
+            'last_seen': self.last_seen,
+            'posts_url': url_for('api.get_user_posts', id=self.id, _external=True),
+            'followed_posts_url': url_for('api.get_user_followed_posts', id=self.id),
+            'post_count': self.posts.count()
+        }
+        return json_user
+
     def __repr__(self):
         return '<User %r>' % self.username
 
@@ -285,12 +297,19 @@ class Post(db.Model):
             'body': self.body,
             'body_html': self.body_html,
             'timestamp': self.timestamp,
-            'author_url': url_for('api.get_user', id=self.author_id),
+            'author_url': url_for('api.get_user', id=self.author_id),  # ????????????????????
             'comments_url': url_for('api.get_post_comments', id=self.id),
-            'comment_count': self.comments.count()
+            'comment_count': self.comments.count()  # 表示资源时可以使用虚构的属性
+            # 提供给客户端的资源表示没必要和数据库模型的内部表示完全一致
         }
+        return json_post
 
-    return json_post
+    @staticmethod
+    def from_json(json_post):
+        body = json_post.get('body')
+        if body is None or body == '':
+            raise ValidationError('post does not have a body')
+        return Post(body=body)
 
 
 db.event.listen(Post.body, 'set', Post.on_changed_body)

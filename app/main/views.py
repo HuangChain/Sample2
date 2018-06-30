@@ -1,6 +1,5 @@
 # coding:utf-8
 # 蓝本中定义的程序路由
-from datetime import datetime
 from flask import render_template, abort, flash, redirect, url_for, request, make_response
 from flask_login import current_user, login_required
 
