@@ -1,7 +1,8 @@
 # coding:utf-8
 # 蓝本中定义的程序路由
-from flask import render_template, abort, flash, redirect, url_for, request, make_response
+from flask import render_template, abort, flash, redirect, url_for, request, make_response, current_app
 from flask_login import current_user, login_required
+from flask_sqlalchemy import get_debug_queries
 
 from . import main
 from ..models import User, Role, Post, Permission, Comment
@@ -17,6 +18,17 @@ Flask 会为蓝本中的全部端点加上一个命名空间,这样就可以在�
 命名空间就是蓝本的名字(Blueprint构造函数的第一个参数),所以视图函数index()注册的端点名是main.index,
 其URL使用url_for('main.index')获取,该函数还支持一种简写的端点形式,在蓝本中可以省略蓝本名
 """
+
+
+@main.after_app_request
+def after_request(response):
+    for query in get_debug_queries():  # 函数返回一个列表,其元素是请求中执行的查询
+        if query.duration >= current_app.config['FLASKY_DB_QUERY_TIMEOUT']:
+            current_app.logger.warning(
+                'Slow query: %s\nParameters: %s\nDuration: %fs\nContext: %s\n'
+                % (query.statement, query.parameters, query.duration,
+                   query.context))
+    return response
 
 
 @main.route('/', methods=['GET', 'POST'])
